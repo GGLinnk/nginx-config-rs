@@ -1,4 +1,4 @@
-use combine::{Parser};
+use combine::Parser;
 use combine::{choice, optional, many1, position};
 use combine::error::StreamError;
 use combine::easy::Error;
@@ -8,7 +8,7 @@ use grammar::{value, block, Code};
 use helpers::{semi, ident, string};
 use position::Pos;
 use tokenizer::{TokenStream, Token};
-use value::{Value};
+use value::Value;
 
 
 fn rewrite<'a>()
@@ -41,9 +41,9 @@ fn set<'a>()
     .with(string().and_then(|t| {
         let ch1 = t.value.chars().nth(0).unwrap_or(' ');
         let ch2 = t.value.chars().nth(1).unwrap_or(' ');
-        if ch1 == '$' && matches!(ch2, 'a'...'z' | 'A'...'Z' | '_') &&
+        if ch1 == '$' && matches!(ch2, 'a'..='z' | 'A'..='Z' | '_') &&
             t.value[2..].chars()
-            .all(|x| matches!(x, 'a'...'z' | 'A'...'Z' | '0'...'9' | '_'))
+            .all(|x| matches!(x, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_'))
         {
             Ok(t.value[1..].to_string())
         } else {
