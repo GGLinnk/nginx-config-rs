@@ -1,12 +1,11 @@
 use std::marker::PhantomData;
 
-use combine::{Parser, ConsumedResult, satisfy, StreamOnce};
-use combine::error::{Tracked};
+use combine::error::Tracked;
 use combine::stream::easy::{Error, Errors, Info};
+use combine::{satisfy, ConsumedResult, Parser, StreamOnce};
 
-use tokenizer::{TokenStream, Kind, Token};
 use position::Pos;
-
+use tokenizer::{Kind, Token, TokenStream};
 
 #[derive(Debug, Clone)]
 pub struct TokenMatch<'a> {
@@ -71,17 +70,14 @@ impl<'a> Parser for TokenMatch<'a> {
     type PartialState = ();
 
     #[inline]
-    fn parse_lazy(&mut self, input: &mut Self::Input)
-        -> ConsumedResult<Self::Output, Self::Input>
-    {
+    fn parse_lazy(&mut self, input: &mut Self::Input) -> ConsumedResult<Self::Output, Self::Input> {
         satisfy(|c: Token<'a>| c.kind == self.kind).parse_lazy(input)
     }
 
-    fn add_error(&mut self,
-        error: &mut Tracked<Errors<Token<'a>, Token<'a>, Pos>>)
-    {
-        error.error.add_error(Error::Expected(Info::Owned(
-            format!("{:?}", self.kind))));
+    fn add_error(&mut self, error: &mut Tracked<Errors<Token<'a>, Token<'a>, Pos>>) {
+        error
+            .error
+            .add_error(Error::Expected(Info::Owned(format!("{:?}", self.kind))));
     }
 }
 
@@ -91,18 +87,14 @@ impl<'a> Parser for Value<'a> {
     type PartialState = ();
 
     #[inline]
-    fn parse_lazy(&mut self, input: &mut Self::Input)
-        -> ConsumedResult<Self::Output, Self::Input>
-    {
-        satisfy(|c: Token<'a>| {
-            c.kind == self.kind && c.value == self.value
-        }).parse_lazy(input)
+    fn parse_lazy(&mut self, input: &mut Self::Input) -> ConsumedResult<Self::Output, Self::Input> {
+        satisfy(|c: Token<'a>| c.kind == self.kind && c.value == self.value).parse_lazy(input)
     }
 
-    fn add_error(&mut self,
-        error: &mut Tracked<<Self::Input as StreamOnce>::Error>)
-    {
-        error.error.add_error(Error::Expected(Info::Borrowed(self.value)));
+    fn add_error(&mut self, error: &mut Tracked<<Self::Input as StreamOnce>::Error>) {
+        error
+            .error
+            .add_error(Error::Expected(Info::Borrowed(self.value)));
     }
 }
 
@@ -112,19 +104,15 @@ impl<'a> Parser for Prefix<'a> {
     type PartialState = ();
 
     #[inline]
-    fn parse_lazy(&mut self, input: &mut Self::Input)
-        -> ConsumedResult<Self::Output, Self::Input>
-    {
-        satisfy(|c: Token<'a>| {
-            c.kind == Kind::String && c.value.starts_with(self.value)
-        })
-        .map(|t: Token<'a>| &t.value[self.value.len()..])
-        .parse_lazy(input)
+    fn parse_lazy(&mut self, input: &mut Self::Input) -> ConsumedResult<Self::Output, Self::Input> {
+        satisfy(|c: Token<'a>| c.kind == Kind::String && c.value.starts_with(self.value))
+            .map(|t: Token<'a>| &t.value[self.value.len()..])
+            .parse_lazy(input)
     }
 
-    fn add_error(&mut self,
-        error: &mut Tracked<<Self::Input as StreamOnce>::Error>)
-    {
-        error.error.add_error(Error::Expected(Info::Borrowed(self.value)));
+    fn add_error(&mut self, error: &mut Tracked<<Self::Input as StreamOnce>::Error>) {
+        error
+            .error
+            .add_error(Error::Expected(Info::Borrowed(self.value)));
     }
 }

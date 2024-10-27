@@ -1,12 +1,11 @@
 use std::fmt;
 
-use combine::{StreamOnce, Positioned};
-use combine::error::{StreamError};
-use combine::stream::{Resetable};
 use combine::easy::{Error, Errors};
+use combine::error::StreamError;
+use combine::stream::Resetable;
+use combine::{Positioned, StreamOnce};
 
 use position::Pos;
-
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Kind {
@@ -52,7 +51,7 @@ impl<'a> StreamOnce for TokenStream<'a> {
         }
         let old_pos = self.off;
         let (kind, len) = self.peek_token()?;
-        let value = &self.buf[self.off-len..self.off];
+        let value = &self.buf[self.off - len..self.off];
         self.skip_whitespace();
         let token = Token { kind, value };
         self.next_state = Some((old_pos, token, self.off, self.position));
@@ -92,9 +91,7 @@ impl<'a> TokenStream<'a> {
         me
     }
 
-    fn peek_token(&mut self)
-        -> Result<(Kind, usize), Error<Token<'a>, Token<'a>>>
-    {
+    fn peek_token(&mut self) -> Result<(Kind, usize), Error<Token<'a>, Token<'a>>> {
         use self::Kind::*;
         let mut iter = self.buf[self.off..].char_indices();
         let cur_char = match iter.next() {
@@ -127,25 +124,20 @@ impl<'a> TokenStream<'a> {
                     match cur_char {
                         x if x == open_quote && prev_char != '\\' => {
                             self.position.column += nchars;
-                            self.off += idx+1;
-                            return Ok((String, idx+1));
+                            self.off += idx + 1;
+                            return Ok((String, idx + 1));
                         }
                         '\n' => {
-                            return Err(
-                                Error::unexpected_message(
-                                    "unterminated string value"
-                                )
-                            );
+                            return Err(Error::unexpected_message("unterminated string value"));
                         }
-                        _ => {
-
-                        }
+                        _ => {}
                     }
                     prev_char = cur_char;
                 }
                 Err(Error::unexpected_message("unterminated string value"))
             }
-            _ => {  // any other non-whitespace char is also a token
+            _ => {
+                // any other non-whitespace char is also a token
                 let mut prev_char = cur_char;
                 let mut nchars = 1;
                 while let Some((idx, cur_char)) = iter.next() {
@@ -164,8 +156,7 @@ impl<'a> TokenStream<'a> {
                             }
                             // TODO(tailhook) validate end of file
                         }
-                        ';' | '{' | '}' | ' ' |
-                        '\"' | '\'' => {
+                        ';' | '{' | '}' | ' ' | '\"' | '\'' => {
                             if prev_char == '\\' {
                             } else {
                                 self.position.column += nchars;
@@ -174,7 +165,7 @@ impl<'a> TokenStream<'a> {
                             }
                         }
                         '\\' if prev_char == '\\' => {
-                            prev_char = ' ';  // reset pending escape
+                            prev_char = ' '; // reset pending escape
                             nchars += 1;
                             continue;
                         }
@@ -235,11 +226,11 @@ impl<'a> fmt::Display for Token<'a> {
 
 #[cfg(test)]
 mod test {
-    use super::{Kind, TokenStream};
     use super::Kind::*;
+    use super::{Kind, TokenStream};
     use combine::easy::Error;
 
-    use combine::{StreamOnce, Positioned};
+    use combine::{Positioned, StreamOnce};
 
     fn tok_str(s: &str) -> Vec<&str> {
         let mut r = Vec::new();
@@ -275,22 +266,31 @@ mod test {
 
     #[test]
     fn simple() {
-        assert_eq!(tok_str("pid /run/nginx.pid;"),
-                   ["pid", "/run/nginx.pid", ";"]);
-        assert_eq!(tok_typ("pid /run/nginx.pid;"),
-                   [String, String, Semicolon]);
+        assert_eq!(
+            tok_str("pid /run/nginx.pid;"),
+            ["pid", "/run/nginx.pid", ";"]
+        );
+        assert_eq!(tok_typ("pid /run/nginx.pid;"), [String, String, Semicolon]);
         assert_eq!(tok_str("a { b }"), ["a", "{", "b", "}"]);
         assert_eq!(tok_typ("a { b }"), [String, BlockStart, String, BlockEnd]);
     }
     #[test]
     fn vars() {
-        assert_eq!(tok_str("proxy_pass http://$x;"),
-                   ["proxy_pass", "http://$x", ";"]);
-        assert_eq!(tok_typ("proxy_pass http://$x;"),
-                   [String, String, Semicolon]);
-        assert_eq!(tok_str("proxy_pass http://${a b};"),
-                   ["proxy_pass", "http://${a b}", ";"]);
-        assert_eq!(tok_typ("proxy_pass http://${a b};"),
-                   [String, String, Semicolon]);
+        assert_eq!(
+            tok_str("proxy_pass http://$x;"),
+            ["proxy_pass", "http://$x", ";"]
+        );
+        assert_eq!(
+            tok_typ("proxy_pass http://$x;"),
+            [String, String, Semicolon]
+        );
+        assert_eq!(
+            tok_str("proxy_pass http://${a b};"),
+            ["proxy_pass", "http://${a b}", ";"]
+        );
+        assert_eq!(
+            tok_typ("proxy_pass http://${a b};"),
+            [String, String, Semicolon]
+        );
     }
 }

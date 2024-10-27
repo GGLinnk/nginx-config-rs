@@ -1,13 +1,12 @@
 //! Abstract Syntax Tree types
 
 #![allow(missing_docs)] // structures are meant to be self-descriptive
+use std::net::{IpAddr, SocketAddr};
 use std::path::PathBuf;
-use std::net::{SocketAddr, IpAddr};
 
-pub use value::{Value};
 use position::Pos;
-use visitors::{DirectiveIter};
-
+pub use value::Value;
+use visitors::DirectiveIter;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Main {
@@ -155,7 +154,6 @@ pub enum GzipProxied {
     Auth,
     Any,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AddHeader {
@@ -342,7 +340,10 @@ pub enum Item {
     Location(Location),
     Listen(Listen),
     ProxyPass(Value),
-    ProxySetHeader { field: Value, value: Value },
+    ProxySetHeader {
+        field: Value,
+        value: Value,
+    },
     ProxyMethod(Value),
     ProxyReadTimeout(Value),
     ProxyConnectTimeout(Value),
@@ -369,13 +370,19 @@ pub enum Item {
     Alias(Value),
     ErrorPage(ErrorPage),
     DefaultType(Value),
-    ErrorLog { file: Value, level: Option<ErrorLevel>},
+    ErrorLog {
+        file: Value,
+        level: Option<ErrorLevel>,
+    },
     Rewrite(Rewrite),
     Return(Return),
     If(If),
     TryFiles(TryFiles),
     ServerName(Vec<ServerName>),
-    Set { variable: String, value: Value },
+    Set {
+        variable: String,
+        value: Value,
+    },
     Map(Map),
     ClientMaxBodySize(Value),
     Include(Value),
@@ -415,7 +422,6 @@ pub enum Item {
 }
 
 impl Item {
-
     pub fn directive_name(&self) -> &'static str {
         use self::Item::*;
         match *self {
@@ -428,15 +434,15 @@ impl Item {
             LimitExcept(..) => "limit_except",
             Listen(..) => "listen",
             ProxyPass(..) => "proxy_pass",
-            ProxySetHeader {..} => "proxy_set_header",
-            ProxyMethod {..} => "proxy_method",
-            ProxyReadTimeout {..} => "proxy_read_timeout",
-            ProxyConnectTimeout {..} => "proxy_connect_timeout",
-            ProxyHideHeader {..} => "proxy_hide_header",
-            ProxyPassHeader {..} => "proxy_pass_header",
+            ProxySetHeader { .. } => "proxy_set_header",
+            ProxyMethod { .. } => "proxy_method",
+            ProxyReadTimeout { .. } => "proxy_read_timeout",
+            ProxyConnectTimeout { .. } => "proxy_connect_timeout",
+            ProxyHideHeader { .. } => "proxy_hide_header",
+            ProxyPassHeader { .. } => "proxy_pass_header",
             ProxyPassRequestHeaders(..) => "proxy_pass_request_headers",
             ProxyPassRequestBody(..) => "proxy_pass_request_body",
-            ProxyHttpVersion {..} => "proxy_http_version",
+            ProxyHttpVersion { .. } => "proxy_http_version",
             ProxyIgnoreHeaders(..) => "proxy_ignore_headers",
             ProxyInterceptErrors(..) => "proxy_intercept_errors",
             ProxyBuffering(..) => "proxy_buffering",
@@ -455,7 +461,7 @@ impl Item {
             Alias(..) => "alias",
             ErrorPage(..) => "error_page",
             DefaultType(..) => "default_type",
-            ErrorLog {..} => "error_log",
+            ErrorLog { .. } => "error_log",
             Rewrite(..) => "rewrite",
             Return(..) => "return",
             If(..) => "if",
@@ -514,13 +520,13 @@ impl Item {
             ProxyPass(_) => None,
             ProxyPassRequestHeaders(..) => None,
             ProxyPassRequestBody(..) => None,
-            ProxySetHeader {..} => None,
-            ProxyMethod {..} => None,
-            ProxyReadTimeout {..} => None,
-            ProxyConnectTimeout {..} => None,
-            ProxyHideHeader {..} => None,
-            ProxyPassHeader {..} => None,
-            ProxyHttpVersion {..} => None,
+            ProxySetHeader { .. } => None,
+            ProxyMethod { .. } => None,
+            ProxyReadTimeout { .. } => None,
+            ProxyConnectTimeout { .. } => None,
+            ProxyHideHeader { .. } => None,
+            ProxyPassHeader { .. } => None,
+            ProxyHttpVersion { .. } => None,
             ProxyIgnoreHeaders(..) => None,
             ProxyInterceptErrors(..) => None,
             ProxyBuffering(..) => None,
@@ -539,7 +545,7 @@ impl Item {
             Alias(..) => None,
             ErrorPage(..) => None,
             DefaultType(..) => None,
-            ErrorLog {..} => None,
+            ErrorLog { .. } => None,
             Rewrite(..) => None,
             Return(..) => None,
             If(ref val) => Some(&val.directives),
@@ -596,21 +602,21 @@ impl Item {
             LimitExcept(ref mut l) => Some(&mut l.directives),
             Listen(_) => None,
             ProxyPass(_) => None,
-            ProxySetHeader {..} => None,
-            ProxyMethod {..} => None,
-            ProxyReadTimeout {..} => None,
-            ProxyConnectTimeout {..} => None,
-            ProxyHideHeader {..} => None,
-            ProxyPassHeader {..} => None,
+            ProxySetHeader { .. } => None,
+            ProxyMethod { .. } => None,
+            ProxyReadTimeout { .. } => None,
+            ProxyConnectTimeout { .. } => None,
+            ProxyHideHeader { .. } => None,
+            ProxyPassHeader { .. } => None,
             ProxyPassRequestHeaders(_) => None,
             ProxyPassRequestBody(_) => None,
-            ProxyHttpVersion {..} => None,
-            ProxyIgnoreHeaders {..} => None,
-            ProxyInterceptErrors {..} => None,
+            ProxyHttpVersion { .. } => None,
+            ProxyIgnoreHeaders { .. } => None,
+            ProxyInterceptErrors { .. } => None,
             ProxyBuffering(..) => None,
-            ProxyCache {..} => None,
-            ProxyCacheKey {..} => None,
-            ProxyCacheValid {..} => None,
+            ProxyCache { .. } => None,
+            ProxyCacheKey { .. } => None,
+            ProxyCacheValid { .. } => None,
             ProxyNextUpstreamTries(..) => None,
             ProxyNextUpstreamTimeout(..) => None,
             ProxyNextUpstream(..) => None,
@@ -623,7 +629,7 @@ impl Item {
             Alias(..) => None,
             ErrorPage(..) => None,
             DefaultType(..) => None,
-            ErrorLog {..} => None,
+            ErrorLog { .. } => None,
             Rewrite(..) => None,
             Return(..) => None,
             If(ref mut val) => Some(&mut val.directives),
@@ -677,20 +683,24 @@ impl Item {
     ///
     /// [`visit_mutable`]: ../visitors/fn.visit_mutable.html
     pub(crate) fn visit_values_mut<F>(&mut self, mut f: F)
-        where F: FnMut(&mut Value)
+    where
+        F: FnMut(&mut Value),
     {
         use self::Item::*;
         match *self {
-            Daemon(_) => {},
-            MasterProcess(_) => {},
-            WorkerProcesses(_) => {},
-            Http(_) => {},
-            Server(_) => {},
-            Location(_) => {},
-            LimitExcept(_) => {},
-            Listen(_) => {},
+            Daemon(_) => {}
+            MasterProcess(_) => {}
+            WorkerProcesses(_) => {}
+            Http(_) => {}
+            Server(_) => {}
+            Location(_) => {}
+            LimitExcept(_) => {}
+            Listen(_) => {}
             ProxyPass(ref mut v) => f(v),
-            ProxySetHeader { ref mut field, ref mut value } => {
+            ProxySetHeader {
+                ref mut field,
+                ref mut value,
+            } => {
                 f(field);
                 f(value);
             }
@@ -704,20 +714,23 @@ impl Item {
             ProxyCacheValid(self::ProxyCacheValid::Normal(ref mut v)) => f(v),
             ProxyCacheValid(self::ProxyCacheValid::Specific(_, ref mut v)) => f(v),
             ProxyCacheValid(self::ProxyCacheValid::Any(ref mut v)) => f(v),
-            ProxyPassRequestHeaders(_) => {},
-            ProxyPassRequestBody(_) => {},
-            ProxyHttpVersion(..) => {},
-            ProxyIgnoreHeaders(..) => {},
-            ProxyInterceptErrors(..) => {},
-            ProxyBuffering(..) => {},
+            ProxyPassRequestHeaders(_) => {}
+            ProxyPassRequestBody(_) => {}
+            ProxyHttpVersion(..) => {}
+            ProxyIgnoreHeaders(..) => {}
+            ProxyInterceptErrors(..) => {}
+            ProxyBuffering(..) => {}
             ProxyNextUpstreamTries(ref mut v) => f(v),
             ProxyNextUpstreamTimeout(ref mut v) => f(v),
-            ProxyNextUpstream(_) => {},
-            Gzip(_) => {},
-            GzipStatic(_) => {},
-            GzipProxied(_) => {},
-            AddHeader(self::AddHeader { ref mut field, ref mut value, .. })
-            => {
+            ProxyNextUpstream(_) => {}
+            Gzip(_) => {}
+            GzipStatic(_) => {}
+            GzipProxied(_) => {}
+            AddHeader(self::AddHeader {
+                ref mut field,
+                ref mut value,
+                ..
+            }) => {
                 f(field);
                 f(value);
             }
@@ -729,9 +742,14 @@ impl Item {
             ErrorLog { ref mut file, .. } => f(file),
             Rewrite(ref mut rw) => f(&mut rw.replacement),
             Return(::ast::Return::Redirect { ref mut url, .. }) => f(url),
-            Return(::ast::Return::Text { text: Some(ref mut t), .. }) => f(t),
-            Return(::ast::Return::Text { text: None, .. }) => {},
-            If(self::If { ref mut condition, .. }) => {
+            Return(::ast::Return::Text {
+                text: Some(ref mut t),
+                ..
+            }) => f(t),
+            Return(::ast::Return::Text { text: None, .. }) => {}
+            If(self::If {
+                ref mut condition, ..
+            }) => {
                 use self::IfCondition::*;
                 match condition {
                     NonEmpty(ref mut v) => f(v),
@@ -748,17 +766,17 @@ impl Item {
                     Executable(ref mut v) => f(v),
                     NotExecutable(ref mut v) => f(v),
                 }
-            },
+            }
             TryFiles(ref mut tf) => {
                 for opt in &mut tf.options {
                     f(opt);
                 }
                 match tf.last_option {
                     TryFilesLastOption::Uri(ref mut v) => f(v),
-                    TryFilesLastOption::NamedLocation(..) => {},
-                    TryFilesLastOption::Code(..) => {},
+                    TryFilesLastOption::NamedLocation(..) => {}
+                    TryFilesLastOption::Code(..) => {}
                 }
-            },
+            }
             Include(ref mut v) => f(v),
             EmptyGif => {}
             Internal => {}
@@ -774,7 +792,7 @@ impl Item {
             ServerTokens(ref mut v) => f(v),
             SslCertificate(ref mut v) => f(v),
             SslCertificateKey(ref mut v) => f(v),
-            ServerName(_) => {},
+            ServerName(_) => {}
             Set { ref mut value, .. } => f(value),
             Map(::ast::Map {
                 ref mut expression,
@@ -804,18 +822,18 @@ impl Item {
             SslSessionFetchByLuaFile(ref mut v) => f(v),
             SslSessionStoreByLuaFile(ref mut v) => f(v),
             // access
-            Allow(..) => {},
-            Deny(..) => {},
+            Allow(..) => {}
+            Deny(..) => {}
             // log module
-            AccessLog(::ast::AccessLog::Off) => {},
+            AccessLog(::ast::AccessLog::Off) => {}
             AccessLog(::ast::AccessLog::On(ref mut lg)) => {
                 f(&mut lg.path);
                 lg.condition.as_mut().map(f);
-            },
+            }
             // real_ip module
             RealIpHeader(ref mut v) => f(v),
-            RealIpRecursive(..) => {},
-            SetRealIpFrom(..) => {},
+            RealIpRecursive(..) => {}
+            SetRealIpFrom(..) => {}
             // index module
             Index(ref mut items) => {
                 for v in items {
@@ -836,7 +854,8 @@ impl Directive {
     ///
     /// [`visit_mutable`]: ../visitors/fn.visit_mutable.html
     pub fn visit_values_mut<F>(&mut self, f: F)
-        where F: FnMut(&mut Value)
+    where
+        F: FnMut(&mut Value),
     {
         self.item.visit_values_mut(f)
     }

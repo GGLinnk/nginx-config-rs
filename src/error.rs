@@ -1,39 +1,39 @@
-use combine::easy::{Errors, Error};
+use combine::easy::{Error, Errors};
 
-use tokenizer::Token;
 use position::Pos;
+use tokenizer::Token;
 
 pub type InternalError<'a> = Errors<Token<'a>, Token<'a>, Pos>;
-
 
 /// Error parsing config
 ///
 /// This structure is opaque for forward compatibility. We are exploring a
 /// way to improve both error message and API.
 #[derive(Fail, Debug)]
-#[fail(display="parse error: {}", _0)]
+#[fail(display = "parse error: {}", _0)]
 pub struct ParseError(Errors<String, String, Pos>);
 
-#[cfg(not(feature="fuzzy_errors"))]
+#[cfg(not(feature = "fuzzy_errors"))]
 impl<'a> From<InternalError<'a>> for ParseError {
     fn from(e: InternalError<'a>) -> ParseError {
-        ParseError(e
-            .map_token(|t| t.value.to_string())
-            .map_range(|t| t.value.to_string()))
+        ParseError(
+            e.map_token(|t| t.value.to_string())
+                .map_range(|t| t.value.to_string()),
+        )
     }
 }
 
 fn convert(error: Error<Token, Token>) -> Error<String, String> {
     error
-    .map_token(|t| t.value.to_string())
-    .map_range(|t| t.value.to_string())
+        .map_token(|t| t.value.to_string())
+        .map_range(|t| t.value.to_string())
 }
 
-#[cfg(feature="fuzzy_errors")]
+#[cfg(feature = "fuzzy_errors")]
 impl<'a> From<InternalError<'a>> for ParseError {
     fn from(e: InternalError<'a>) -> ParseError {
+        use combine::easy::Info;
         use strsim::jaro_winkler;
-        use combine::easy::{Info};
 
         let mut error_buf = Vec::new();
         let mut expected_buf = Vec::new();
@@ -74,8 +74,7 @@ impl<'a> From<InternalError<'a>> for ParseError {
                 close.sort_by_key(|&(_, ref x)| (10000. - 10000. * x) as u32);
                 close.truncate(3);
                 for (item, _) in &close {
-                    error_buf.push(convert(Error::Expected(
-                        Info::Borrowed(item))));
+                    error_buf.push(convert(Error::Expected(Info::Borrowed(item))));
                 }
                 if close.len() < expected_buf.len() {
                     error_buf.push(Error::Expected(Info::Owned(format!(
@@ -93,6 +92,9 @@ impl<'a> From<InternalError<'a>> for ParseError {
                 error_buf.push(convert(Error::Expected(e)));
             }
         }
-        return ParseError(Errors { position: e.position, errors: error_buf })
+        return ParseError(Errors {
+            position: e.position,
+            errors: error_buf,
+        });
     }
 }

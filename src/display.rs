@@ -1,6 +1,6 @@
 use ast;
-use std::fmt;
 use format::{Displayable, Formatter, Style};
+use std::fmt;
 
 use value;
 
@@ -18,9 +18,7 @@ impl Displayable for ast::Directive {
     }
 }
 
-fn simple_block<D: fmt::Display>(f: &mut Formatter, name: D,
-    directives: &[ast::Directive])
-{
+fn simple_block<D: fmt::Display>(f: &mut Formatter, name: D, directives: &[ast::Directive]) {
     f.margin();
     f.indent();
     f.fmt(&format_args!("{} ", name));
@@ -43,7 +41,7 @@ impl Displayable for ast::Item {
     fn display(&self, f: &mut Formatter) {
         use ast::Item::*;
         match *self {
-            | Daemon(opt)
+            Daemon(opt)
             | MasterProcess(opt)
             | ProxyPassRequestHeaders(opt)
             | ProxyPassRequestBody(opt)
@@ -53,8 +51,7 @@ impl Displayable for ast::Item {
             | Etag(opt)
             | RecursiveErrorPages(opt)
             | ChunkedTransferEncoding(opt)
-            | RealIpRecursive(opt)
-            => {
+            | RealIpRecursive(opt) => {
                 f.indent();
                 f.write(self.directive_name());
                 f.write(" ");
@@ -78,22 +75,32 @@ impl Displayable for ast::Item {
             Server(ref s) => {
                 simple_block(f, "server", &s.directives);
             }
-            Location(ast::Location { ref pattern, ref directives, .. }) => {
-                simple_block(f,
-                    format_args!("location {}", pattern),
-                    &directives);
+            Location(ast::Location {
+                ref pattern,
+                ref directives,
+                ..
+            }) => {
+                simple_block(f, format_args!("location {}", pattern), &directives);
             }
-            LimitExcept(ast::LimitExcept { ref methods, ref directives, .. })
-            => {
-                simple_block(f,
+            LimitExcept(ast::LimitExcept {
+                ref methods,
+                ref directives,
+                ..
+            }) => {
+                simple_block(
+                    f,
                     format_args!("limit_except {}", methods.join(" ")),
-                    &directives);
+                    &directives,
+                );
             }
             Listen(ref lst) => {
                 f.indent();
                 lst.display(f);
             }
-            ProxySetHeader { ref field, ref value } => {
+            ProxySetHeader {
+                ref field,
+                ref value,
+            } => {
                 f.indent();
                 f.write("proxy_set_header ");
                 field.display(f);
@@ -133,21 +140,19 @@ impl Displayable for ast::Item {
                 f.write("server_name");
                 for item in items {
                     match *item {
-                        Exact(ref v)
-                        => f.fmt(&format_args!(" {}", escape(&v))),
-                        Suffix(ref v)
-                        => f.fmt(&format_args!(" .{}", escape(&v))),
-                        StarSuffix(ref v)
-                        => f.fmt(&format_args!(" *.{}", escape(&v))),
-                        StarPrefix(ref v)
-                        => f.fmt(&format_args!(" {}.*", escape(&v))),
-                        Regex(ref v)
-                        => f.fmt(&format_args!(" ~{}", escape(&v))),
+                        Exact(ref v) => f.fmt(&format_args!(" {}", escape(&v))),
+                        Suffix(ref v) => f.fmt(&format_args!(" .{}", escape(&v))),
+                        StarSuffix(ref v) => f.fmt(&format_args!(" *.{}", escape(&v))),
+                        StarPrefix(ref v) => f.fmt(&format_args!(" {}.*", escape(&v))),
+                        Regex(ref v) => f.fmt(&format_args!(" ~{}", escape(&v))),
                     }
                 }
                 f.end();
             }
-            Set { ref variable, ref value } => {
+            Set {
+                ref variable,
+                ref value,
+            } => {
                 f.indent();
                 f.write("set $");
                 f.write(variable); // TODO(tailhook) check syntax?
@@ -190,22 +195,18 @@ impl Displayable for ast::Item {
                 for &(ref pat, ref value) in &m.patterns {
                     f.indent();
                     match *pat {
-                        Exact(ref v) if matches!(&v[..],
-                            | "volatile"
-                            | "hostnames"
-                            | "default"
-                            | "include"
-                        ) => f.fmt(&format_args!("\\{}", escape(&v))),
                         Exact(ref v)
-                        => f.fmt(&format_args!("{}", escape(&v))),
-                        Suffix(ref v)
-                        => f.fmt(&format_args!(".{}", escape(&v))),
-                        StarSuffix(ref v)
-                        => f.fmt(&format_args!("*.{}", escape(&v))),
-                        StarPrefix(ref v)
-                        => f.fmt(&format_args!("{}.*", escape(&v))),
-                        Regex(ref v)
-                        => f.fmt(&format_args!("~{}", escape(&v))),
+                            if matches!(&v[..], |"volatile"| "hostnames"
+                                | "default"
+                                | "include") =>
+                        {
+                            f.fmt(&format_args!("\\{}", escape(&v)))
+                        }
+                        Exact(ref v) => f.fmt(&format_args!("{}", escape(&v))),
+                        Suffix(ref v) => f.fmt(&format_args!(".{}", escape(&v))),
+                        StarSuffix(ref v) => f.fmt(&format_args!("*.{}", escape(&v))),
+                        StarPrefix(ref v) => f.fmt(&format_args!("{}.*", escape(&v))),
+                        Regex(ref v) => f.fmt(&format_args!("~{}", escape(&v))),
                     }
                     f.write(" ");
                     value.display(f);
@@ -229,7 +230,7 @@ impl Displayable for ast::Item {
                 });
                 f.end();
             }
-            | Root(ref val)
+            Root(ref val)
             | Alias(ref val)
             | DefaultType(ref val)
             | ClientMaxBodySize(ref val)
@@ -258,13 +259,10 @@ impl Displayable for ast::Item {
             | ProxyNextUpstreamTries(ref val)
             | ProxyNextUpstreamTimeout(ref val)
             | ServerTokens(ref val)
-            | RealIpHeader(ref val)
-            => {
+            | RealIpHeader(ref val) => {
                 one_arg_dir(self.directive_name(), val, f);
             }
-            | EmptyGif
-            | Internal
-            => {
+            EmptyGif | Internal => {
                 f.indent();
                 f.write(self.directive_name());
                 f.end();
@@ -278,10 +276,18 @@ impl Displayable for ast::Item {
                     f.fmt(code);
                 }
                 match ep.response_code {
-                    Target => {},
-                    Replace(ref code) =>  { f.write(" ="); f.fmt(code); }
-                    Redirect(ref code) => { f.write(" ="); f.fmt(code); }
-                    Keep => { f.write(" ="); }
+                    Target => {}
+                    Replace(ref code) => {
+                        f.write(" =");
+                        f.fmt(code);
+                    }
+                    Redirect(ref code) => {
+                        f.write(" =");
+                        f.fmt(code);
+                    }
+                    Keep => {
+                        f.write(" =");
+                    }
                 }
                 f.write(" ");
                 ep.uri.display(f);
@@ -293,7 +299,10 @@ impl Displayable for ast::Item {
                 f.write("return ");
                 match ret {
                     Redirect { code: None, url } => url.display(f),
-                    Redirect { code: Some(code), url } => {
+                    Redirect {
+                        code: Some(code),
+                        url,
+                    } => {
                         f.fmt(&code);
                         f.write(" ");
                         url.display(f);
@@ -332,7 +341,10 @@ impl Displayable for ast::Item {
                 }
                 f.end();
             }
-            Expires(::ast::Expires { modified, ref value }) => {
+            Expires(::ast::Expires {
+                modified,
+                ref value,
+            }) => {
                 f.indent();
                 f.write("expires ");
                 if modified {
@@ -341,7 +353,11 @@ impl Displayable for ast::Item {
                 value.display(f);
                 f.end();
             }
-            If(ast::If { ref condition, ref directives, position: _ }) => {
+            If(ast::If {
+                ref condition,
+                ref directives,
+                position: _,
+            }) => {
                 use ast::IfCondition::*;
                 f.indent();
                 f.write("if (");
@@ -382,31 +398,31 @@ impl Displayable for ast::Item {
                     NotExists(ref v) => {
                         f.write("!-e ");
                         v.display(f);
-                    },
+                    }
                     FileExists(ref v) => {
                         f.write("-f ");
                         v.display(f);
-                    },
+                    }
                     FileNotExists(ref v) => {
                         f.write("!-f ");
                         v.display(f);
-                    },
+                    }
                     DirExists(ref v) => {
                         f.write("-d ");
                         v.display(f);
-                    },
+                    }
                     DirNotExists(ref v) => {
                         f.write("!-d ");
                         v.display(f);
-                    },
+                    }
                     Executable(ref v) => {
                         f.write("-x ");
                         v.display(f);
-                    },
+                    }
                     NotExecutable(ref v) => {
                         f.write("!-x ");
                         v.display(f);
-                    },
+                    }
                 }
                 f.write(") ");
                 f.start_block();
@@ -508,12 +524,12 @@ impl Displayable for ast::Item {
                 }
                 f.end();
             }
-            AccessLog(ast::AccessLog::Off) =>  {
+            AccessLog(ast::AccessLog::Off) => {
                 f.indent();
                 f.write("access_log off");
                 f.end();
             }
-            AccessLog(ast::AccessLog::On(ref lg)) =>  {
+            AccessLog(ast::AccessLog::On(ref lg)) => {
                 f.indent();
                 f.write("access_log ");
                 lg.path.display(f);
@@ -597,14 +613,20 @@ impl Displayable for ast::Listen {
     fn display(&self, f: &mut Formatter) {
         f.write("listen ");
         self.address.display(f);
-        if self.default_server { f.write(" default_server") }
-        if self.ssl { f.write(" ssl") }
+        if self.default_server {
+            f.write(" default_server")
+        }
+        if self.ssl {
+            f.write(" ssl")
+        }
         match self.ext {
             Some(ast::HttpExt::Http2) => f.write(" http2"),
             Some(ast::HttpExt::Spdy) => f.write(" spdy"),
             None => {}
         }
-        if self.proxy_protocol { f.write(" proxy_protocol") }
+        if self.proxy_protocol {
+            f.write(" proxy_protocol")
+        }
         if let Some(setfib) = self.setfib {
             f.fmt(&format_args!(" setfib={}", setfib));
         }
@@ -620,13 +642,21 @@ impl Displayable for ast::Listen {
         if let Some(sndbuf) = self.sndbuf {
             f.fmt(&format_args!(" sndbuf={}", sndbuf));
         }
-        if self.deferred { f.write(" deferred") }
-        if self.bind { f.write(" bind") }
-        if let Some(ipv6only) = self.ipv6only {
-            f.fmt(&format_args!(" ipv6only={}",
-                               if ipv6only { "on" } else { "off" }));
+        if self.deferred {
+            f.write(" deferred")
         }
-        if self.reuseport { f.write(" reuseport") }
+        if self.bind {
+            f.write(" bind")
+        }
+        if let Some(ipv6only) = self.ipv6only {
+            f.fmt(&format_args!(
+                " ipv6only={}",
+                if ipv6only { "on" } else { "off" }
+            ));
+        }
+        if self.reuseport {
+            f.write(" reuseport")
+        }
         f.end();
     }
 }
@@ -674,7 +704,7 @@ impl_display!(
 
 fn escape(s: &str) -> &str {
     // TODO(tailhook) escape raw value
-    return s
+    return s;
 }
 
 impl fmt::Display for ast::LocationPattern {
@@ -720,7 +750,6 @@ impl ast::GzipProxied {
         }
     }
 }
-
 
 impl fmt::Display for ast::GzipStatic {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

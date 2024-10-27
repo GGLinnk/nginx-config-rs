@@ -26,16 +26,17 @@ pub(crate) enum Item {
     Variable(String),
 }
 
-
 impl Value {
-    pub(crate) fn parse<'a>(position: Pos, tok: Token<'a>)
-        -> Result<Value, Error<Token<'a>, Token<'a>>>
-    {
+    pub(crate) fn parse<'a>(
+        position: Pos,
+        tok: Token<'a>,
+    ) -> Result<Value, Error<Token<'a>, Token<'a>>> {
         Value::parse_str(position, tok.value)
     }
-    pub(crate) fn parse_str<'a>(position: Pos, token: &str)
-        -> Result<Value, Error<Token<'a>, Token<'a>>>
-    {
+    pub(crate) fn parse_str<'a>(
+        position: Pos,
+        token: &str,
+    ) -> Result<Value, Error<Token<'a>, Token<'a>>> {
         let data = if token.starts_with('"') {
             Value::scan_quoted('"', token)?
         } else if token.starts_with("'") {
@@ -46,13 +47,11 @@ impl Value {
         Ok(Value { position, data })
     }
 
-    fn scan_raw<'a>(value: &str)
-        -> Result<Vec<Item>, Error<Token<'a>, Token<'a>>>
-    {
+    fn scan_raw<'a>(value: &str) -> Result<Vec<Item>, Error<Token<'a>, Token<'a>>> {
         use self::Item::*;
         let mut buf = Vec::new();
         let mut chiter = value.char_indices().peekable();
-        let mut prev_char = ' ';  // any having no special meaning
+        let mut prev_char = ' '; // any having no special meaning
         let mut cur_slice = 0;
         // TODO(unquote) single and double quotes
         while let Some((idx, cur_char)) = chiter.next() {
@@ -66,45 +65,42 @@ impl Value {
                     if idx != cur_slice {
                         buf.push(Literal(value[cur_slice..idx].to_string()));
                     }
-                    let fchar = chiter.next().map(|(_, c)| c)
-                        .ok_or_else(|| Error::unexpected_message(
-                            "bare $ in expression"))?;
+                    let fchar = chiter
+                        .next()
+                        .map(|(_, c)| c)
+                        .ok_or_else(|| Error::unexpected_message("bare $ in expression"))?;
                     match fchar {
                         '{' => {
                             while let Some(&(_, c)) = chiter.peek() {
                                 match c {
-                                    'a'..='z' | 'A'..='Z' | '_' | '0'..='9'
-                                    => chiter.next(),
+                                    'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => chiter.next(),
                                     '}' => break,
                                     _ => {
                                         return Err(Error::expected("}".into()));
                                     }
                                 };
                             }
-                            let now = chiter.peek().map(|&(idx, _)| idx)
-                                .unwrap();
-                            buf.push(Variable(
-                                value[vstart+1..now].to_string()));
-                            cur_slice = now+1;
+                            let now = chiter.peek().map(|&(idx, _)| idx).unwrap();
+                            buf.push(Variable(value[vstart + 1..now].to_string()));
+                            cur_slice = now + 1;
                         }
                         'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => {
                             while let Some(&(_, c)) = chiter.peek() {
                                 match c {
-                                    'a'..='z' | 'A'..='Z' | '_' | '0'..='9'
-                                    => chiter.next(),
+                                    'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => chiter.next(),
                                     _ => break,
                                 };
                             }
-                            let now = chiter.peek().map(|&(idx, _)| idx)
-                                .unwrap_or(value.len());
-                            buf.push(Variable(
-                                value[vstart..now].to_string()));
+                            let now = chiter.peek().map(|&(idx, _)| idx).unwrap_or(value.len());
+                            buf.push(Variable(value[vstart..now].to_string()));
                             cur_slice = now;
                         }
                         _ => {
-                            return Err(Error::unexpected_message(
-                                format!("variable name starts with \
-                                    bad char {:?}", fchar)));
+                            return Err(Error::unexpected_message(format!(
+                                "variable name starts with \
+                                    bad char {:?}",
+                                fchar
+                            )));
                         }
                     }
                 }
@@ -118,14 +114,12 @@ impl Value {
         Ok(buf)
     }
 
-    fn scan_quoted<'a>(quote: char, value: &str)
-        -> Result<Vec<Item>, Error<Token<'a>, Token<'a>>>
-    {
+    fn scan_quoted<'a>(quote: char, value: &str) -> Result<Vec<Item>, Error<Token<'a>, Token<'a>>> {
         use self::Item::*;
         let mut buf = Vec::new();
         let mut chiter = value.char_indices().peekable();
         chiter.next(); // skip quote
-        let mut prev_char = ' ';  // any having no special meaning
+        let mut prev_char = ' '; // any having no special meaning
         let mut cur_slice = String::new();
         while let Some((idx, cur_char)) = chiter.next() {
             match cur_char {
@@ -141,20 +135,19 @@ impl Value {
                         // TODO(tailhook) figure out maybe this is actually a
                         // tokenizer error, or maybe make this cryptic message
                         // better
-                        return Err(Error::unexpected_message(
-                            "quote closes prematurely"));
+                        return Err(Error::unexpected_message("quote closes prematurely"));
                     }
                     return Ok(buf);
                 }
                 '$' => {
                     let vstart = idx + 1;
                     if cur_slice.len() > 0 {
-                        buf.push(Literal(
-                            mem::replace(&mut cur_slice, String::new())));
+                        buf.push(Literal(mem::replace(&mut cur_slice, String::new())));
                     }
-                    let fchar = chiter.next().map(|(_, c)| c)
-                        .ok_or_else(|| Error::unexpected_message(
-                            "bare $ in expression"))?;
+                    let fchar = chiter
+                        .next()
+                        .map(|(_, c)| c)
+                        .ok_or_else(|| Error::unexpected_message("bare $ in expression"))?;
                     match fchar {
                         '{' => {
                             unimplemented!();
@@ -162,22 +155,22 @@ impl Value {
                         'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => {
                             while let Some(&(_, c)) = chiter.peek() {
                                 match c {
-                                    'a'..='z' | 'A'..='Z' | '_' | '0'..='9'
-                                    => chiter.next(),
+                                    'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => chiter.next(),
                                     _ => break,
                                 };
                             }
-                            let now = chiter.peek().map(|&(idx, _)| idx)
-                                .ok_or_else(|| {
-                                    Error::unexpected_message("unclosed quote")
-                                })?;
-                            buf.push(Variable(
-                                value[vstart..now].to_string()));
+                            let now = chiter
+                                .peek()
+                                .map(|&(idx, _)| idx)
+                                .ok_or_else(|| Error::unexpected_message("unclosed quote"))?;
+                            buf.push(Variable(value[vstart..now].to_string()));
                         }
                         _ => {
-                            return Err(Error::unexpected_message(
-                                format!("variable name starts with \
-                                    bad char {:?}", fchar)));
+                            return Err(Error::unexpected_message(format!(
+                                "variable name starts with \
+                                    bad char {:?}",
+                                fchar
+                            )));
                         }
                     }
                 }
@@ -192,8 +185,7 @@ impl Value {
 impl FromStr for Value {
     type Err = String;
     fn from_str(s: &str) -> Result<Value, String> {
-        Value::parse_str(Pos { line: 0, column: 0 }, s)
-        .map_err(|e| e.to_string())
+        Value::parse_str(Pos { line: 0, column: 0 }, s).map_err(|e| e.to_string())
     }
 }
 
@@ -220,8 +212,9 @@ impl Value {
 
     /// Replace variable references in this string with literal values
     pub fn replace_vars<'a, F, S>(&mut self, mut f: F)
-        where F: FnMut(&str) -> Option<S>,
-              S: AsRef<str> + Into<String> + 'a,
+    where
+        F: FnMut(&str) -> Option<S>,
+        S: AsRef<str> + Into<String> + 'a,
     {
         use self::Item::*;
         // TODO(tailhook) join literal blocks
@@ -240,14 +233,13 @@ impl Value {
 
 fn next_alphanum(data: &Vec<Item>, index: usize) -> bool {
     use self::Item::*;
-    data.get(index+1).and_then(|item| {
-        match item {
+    data.get(index + 1)
+        .and_then(|item| match item {
             Literal(s) => Some(s),
             Variable(_) => None,
-        }
-    }).and_then(|s| {
-        s.chars().next().map(|c| c.is_alphanumeric())
-    }).unwrap_or(false)
+        })
+        .and_then(|s| s.chars().next().map(|c| c.is_alphanumeric()))
+        .unwrap_or(false)
 }
 
 impl Displayable for Value {

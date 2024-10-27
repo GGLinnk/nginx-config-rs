@@ -1,6 +1,5 @@
-use std::fmt;
 use std::default::Default;
-
+use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct Formatter<'a> {
@@ -20,9 +19,7 @@ pub struct Style {
 
 impl Default for Style {
     fn default() -> Style {
-        Style {
-            indent: 4,
-        }
+        Style { indent: 4 }
     }
 }
 
@@ -68,7 +65,9 @@ impl<'a> Formatter<'a> {
     }
 
     pub fn end_block(&mut self) {
-        self.indent = self.indent.checked_sub(self.style.indent)
+        self.indent = self
+            .indent
+            .checked_sub(self.style.indent)
             .expect("negative indent");
         self.indent();
         self.buf.push('}');

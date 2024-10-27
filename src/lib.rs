@@ -12,10 +12,15 @@
 #![warn(missing_docs)]
 
 extern crate combine;
-#[cfg(feature="fuzzy_errors")] extern crate strsim;
-#[macro_use] extern crate failure;
-#[macro_use] extern crate matches;
-#[cfg(test)] #[macro_use] extern crate pretty_assertions;
+#[cfg(feature = "fuzzy_errors")]
+extern crate strsim;
+#[macro_use]
+extern crate failure;
+#[macro_use]
+extern crate matches;
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
 
 pub mod ast;
 mod display;
@@ -32,12 +37,12 @@ mod access;
 mod core;
 mod gzip;
 mod headers;
-mod proxy;
-mod rewrite;
 mod log;
+mod proxy;
 mod real_ip;
+mod rewrite;
 
-pub use grammar::{parse_main, parse_directives};
-pub use format::Style;
-pub use position::Pos;
 pub use error::ParseError;
+pub use format::Style;
+pub use grammar::{parse_directives, parse_main};
+pub use position::Pos;
