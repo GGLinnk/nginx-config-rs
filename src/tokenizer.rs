@@ -2,7 +2,7 @@ use std::fmt;
 
 use combine::easy::{Error, Errors};
 use combine::error::StreamError;
-use combine::stream::Resetable;
+use combine::stream::{ResetStream, StreamErrorFor};
 use combine::{Positioned, StreamOnce};
 
 use position::Pos;
@@ -36,12 +36,12 @@ pub struct Checkpoint {
 }
 
 impl<'a> StreamOnce for TokenStream<'a> {
-    type Item = Token<'a>;
+    type Token = Token<'a>;
     type Range = Token<'a>;
     type Position = Pos;
-    type Error = Errors<Token<'a>, Token<'a>, Pos>;
+    type Error = Errors<Self::Token, Self::Range, Self::Position>;
 
-    fn uncons(&mut self) -> Result<Self::Item, Error<Token<'a>, Token<'a>>> {
+    fn uncons(&mut self) -> Result<Self::Token, StreamErrorFor<Self>> {
         if let Some((at, tok, off, pos)) = self.next_state {
             if at == self.off {
                 self.off = off;
@@ -65,17 +65,31 @@ impl<'a> Positioned for TokenStream<'a> {
     }
 }
 
-impl<'a> Resetable for TokenStream<'a> {
+impl<'a> ResetStream for TokenStream<'a> {
     type Checkpoint = Checkpoint;
+
     fn checkpoint(&self) -> Self::Checkpoint {
         Checkpoint {
             position: self.position,
             off: self.off,
         }
     }
-    fn reset(&mut self, checkpoint: Checkpoint) {
+
+    fn reset(&mut self, checkpoint: Self::Checkpoint) -> Result<(), Self::Error> {
         self.position = checkpoint.position;
         self.off = checkpoint.off;
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for TokenStream<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "TokenStream {{ position: {}, off: {} }}",
+            self.position, self.off
+        )
     }
 }
 
@@ -128,13 +142,13 @@ impl<'a> TokenStream<'a> {
                             return Ok((String, idx + 1));
                         }
                         '\n' => {
-                            return Err(Error::unexpected_message("unterminated string value"));
+                            return Err(Error::unexpected("unterminated string value"));
                         }
                         _ => {}
                     }
                     prev_char = cur_char;
                 }
-                Err(Error::unexpected_message("unterminated string value"))
+                Err(Error::unexpected("unterminated string value"))
             }
             _ => {
                 // any other non-whitespace char is also a token

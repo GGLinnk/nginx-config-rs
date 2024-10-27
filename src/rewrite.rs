@@ -10,7 +10,7 @@ use position::Pos;
 use tokenizer::{Token, TokenStream};
 use value::Value;
 
-fn rewrite<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+fn rewrite<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     use ast::Item::Rewrite;
     use ast::RewriteFlag::*;
 
@@ -33,7 +33,7 @@ fn rewrite<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
         .skip(semi())
 }
 
-fn set<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+fn set<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     ident("set")
         .with(string().and_then(|t| {
             let ch1 = t.value.chars().nth(0).unwrap_or(' ');
@@ -46,7 +46,7 @@ fn set<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
             {
                 Ok(t.value[1..].to_string())
             } else {
-                Err(Error::unexpected_message("invalid variable"))
+                Err(Error::unexpected("invalid variable"))
             }
         }))
         .and(value())
@@ -54,28 +54,20 @@ fn set<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
         .map(|(variable, value)| Item::Set { variable, value })
 }
 
-fn return_directive<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+fn return_directive<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     use ast::Return::*;
     use value::Item::*;
 
     fn lit<'a, 'x>(val: &'a Value) -> Result<&'a str, Error<Token<'x>, Token<'x>>> {
         if val.data.is_empty() {
-            return Err(Error::unexpected_message(
-                "empty return codes are not supported",
-            ));
+            return Err(Error::unexpected("empty return codes are not supported"));
         }
         if val.data.len() > 1 {
-            return Err(Error::unexpected_message(
-                "return code can't contain variables",
-            ));
+            return Err(Error::unexpected("return code can't contain variables"));
         }
         match val.data[0] {
             Literal(ref x) => return Ok(x),
-            _ => {
-                return Err(Error::unexpected_message(
-                    "return code can't contain variables",
-                ))
-            }
+            _ => return Err(Error::unexpected("return code can't contain variables")),
         }
     }
 
@@ -107,7 +99,7 @@ fn return_directive<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>>
                     }),
                     _ => match Code::parse(lit(&a)?)? {
                         Code::Redirect(_) => {
-                            return Err(Error::unexpected_message(
+                            return Err(Error::unexpected(
                                 "return with redirect code must have \
                              destination URI",
                             ))
@@ -133,10 +125,10 @@ fn strip_open_paren<'a>(v: &'_ mut Vec<&'a str>) -> Result<(), Error<Token<'a>, 
                     return Ok(());
                 }
             } else {
-                return Err(Error::unexpected_message("missing parenthesis"));
+                return Err(Error::unexpected("missing parenthesis"));
             }
         }
-        _ => return Err(Error::unexpected_message("missing parenthesis")),
+        _ => return Err(Error::unexpected("missing parenthesis")),
     }
     v.remove(0);
     Ok(())
@@ -152,10 +144,10 @@ fn strip_close_paren<'a>(v: &'_ mut Vec<&'a str>) -> Result<(), Error<Token<'a>,
                     return Ok(());
                 }
             } else {
-                return Err(Error::unexpected_message("missing parenthesis"));
+                return Err(Error::unexpected("missing parenthesis"));
             }
         }
-        _ => return Err(Error::unexpected_message("missing parenthesis")),
+        _ => return Err(Error::unexpected("missing parenthesis")),
     }
     v.pop();
     Ok(())
@@ -170,7 +162,7 @@ fn parse_unary<'a>(
     let oper = v.remove(0);
     let right = Value::parse_str(position, v.remove(0))?;
     if v.len() > 0 {
-        return Err(Error::unexpected_message("extra argument to condition"));
+        return Err(Error::unexpected("extra argument to condition"));
     }
     match oper {
         "-d" => return Ok(DirExists(right)),
@@ -181,7 +173,7 @@ fn parse_unary<'a>(
         "!-x" => return Ok(NotExecutable(right)),
         "-e" => return Ok(Exists(right)),
         "!-e" => return Ok(NotExists(right)),
-        _ => return Err(Error::unexpected_message("missing parenthesis")),
+        _ => return Err(Error::unexpected("missing parenthesis")),
     }
 }
 
@@ -199,7 +191,7 @@ fn parse_binary<'a>(
     let right = match &v[..] {
         [x] => x.to_string(),
         _ => {
-            return Err(Error::unexpected_message(
+            return Err(Error::unexpected(
                 "you can only compare against a single literal",
             ))
         }
@@ -211,11 +203,11 @@ fn parse_binary<'a>(
         "!~" => return Ok(RegNeq(left, right, true)),
         "~*" => return Ok(RegEq(left, right, false)),
         "!~*" => return Ok(RegNeq(left, right, false)),
-        _ => return Err(Error::unexpected_message("missing parenthesis")),
+        _ => return Err(Error::unexpected("missing parenthesis")),
     }
 }
 
-fn if_directive<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+fn if_directive<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     ident("if")
         .with(position())
         .and(many1(string()))
@@ -226,7 +218,7 @@ fn if_directive<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
             let binary = match v.get(0) {
                 Some(x) if x.starts_with('$') => true,
                 Some(_) => false,
-                None => return Err(Error::unexpected_message("missing parenthesis")),
+                None => return Err(Error::unexpected("missing parenthesis")),
             };
             if binary {
                 parse_binary(v, pos)
@@ -243,6 +235,6 @@ fn if_directive<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
         .map(Item::If)
 }
 
-pub fn directives<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+pub fn directives<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     choice((rewrite(), set(), return_directive(), if_directive()))
 }

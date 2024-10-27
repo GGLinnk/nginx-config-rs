@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use combine::error::Tracked;
 use combine::stream::easy::{Error, Errors, Info};
-use combine::{satisfy, ConsumedResult, Parser, StreamOnce};
+use combine::{satisfy, ParseResult, Parser, StreamOnce};
 
 use position::Pos;
 use tokenizer::{Kind, Token, TokenStream};
@@ -64,13 +64,15 @@ pub fn string<'x>() -> TokenMatch<'x> {
     kind(Kind::String)
 }
 
-impl<'a> Parser for TokenMatch<'a> {
-    type Input = TokenStream<'a>;
+impl<'a> Parser<TokenStream<'a>> for TokenMatch<'a> {
     type Output = Token<'a>;
     type PartialState = ();
 
     #[inline]
-    fn parse_lazy(&mut self, input: &mut Self::Input) -> ConsumedResult<Self::Output, Self::Input> {
+    fn parse_lazy(
+        &mut self,
+        input: &mut TokenStream<'a>,
+    ) -> ParseResult<Self::Output, <TokenStream<'a> as StreamOnce>::Error> {
         satisfy(|c: Token<'a>| c.kind == self.kind).parse_lazy(input)
     }
 
@@ -81,38 +83,42 @@ impl<'a> Parser for TokenMatch<'a> {
     }
 }
 
-impl<'a> Parser for Value<'a> {
-    type Input = TokenStream<'a>;
+impl<'a> Parser<TokenStream<'a>> for Value<'a> {
     type Output = Token<'a>;
     type PartialState = ();
 
     #[inline]
-    fn parse_lazy(&mut self, input: &mut Self::Input) -> ConsumedResult<Self::Output, Self::Input> {
+    fn parse_lazy(
+        &mut self,
+        input: &mut TokenStream<'a>,
+    ) -> ParseResult<Self::Output, <TokenStream<'a> as StreamOnce>::Error> {
         satisfy(|c: Token<'a>| c.kind == self.kind && c.value == self.value).parse_lazy(input)
     }
 
-    fn add_error(&mut self, error: &mut Tracked<<Self::Input as StreamOnce>::Error>) {
+    fn add_error(&mut self, error: &mut Tracked<<TokenStream<'a> as StreamOnce>::Error>) {
         error
             .error
-            .add_error(Error::Expected(Info::Borrowed(self.value)));
+            .add_error(Error::Expected(Info::Static(self.value)));
     }
 }
 
-impl<'a> Parser for Prefix<'a> {
-    type Input = TokenStream<'a>;
+impl<'a> Parser<TokenStream<'a>> for Prefix<'a> {
     type Output = &'a str;
     type PartialState = ();
 
     #[inline]
-    fn parse_lazy(&mut self, input: &mut Self::Input) -> ConsumedResult<Self::Output, Self::Input> {
+    fn parse_lazy(
+        &mut self,
+        input: &mut TokenStream<'a>,
+    ) -> ParseResult<Self::Output, <TokenStream<'a> as StreamOnce>::Error> {
         satisfy(|c: Token<'a>| c.kind == Kind::String && c.value.starts_with(self.value))
             .map(|t: Token<'a>| &t.value[self.value.len()..])
             .parse_lazy(input)
     }
 
-    fn add_error(&mut self, error: &mut Tracked<<Self::Input as StreamOnce>::Error>) {
+    fn add_error(&mut self, error: &mut Tracked<<TokenStream<'a> as StreamOnce>::Error>) {
         error
             .error
-            .add_error(Error::Expected(Info::Borrowed(self.value)));
+            .add_error(Error::Expected(Info::Static(self.value)));
     }
 }

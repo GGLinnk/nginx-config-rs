@@ -8,7 +8,7 @@ use grammar::{bool, value, Code};
 use helpers::{ident, semi, string};
 use tokenizer::TokenStream;
 
-pub fn directives<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+pub fn directives<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     choice((
         ident("proxy_pass")
             .with(value())
@@ -48,7 +48,7 @@ pub fn directives<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
                             if items == 1 {
                                 return Ok(Any(time));
                             } else {
-                                return Err(Error::unexpected_message(
+                                return Err(Error::unexpected(
                                     "`any` must be sole argument before time. \
                                      It's not allowed to combine `any` and \
                                      other codes",
@@ -58,14 +58,14 @@ pub fn directives<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
                         [Literal(x)] => match Code::parse(x) {
                             Ok(code) => codes.push(code.as_code()),
                             Err(_) => {
-                                return Err(Error::unexpected_message(format!(
+                                return Err(Error::unexpected_format(format!(
                                     "invalid http code {:?}",
                                     x
                                 )));
                             }
                         },
                         _ => {
-                            return Err(Error::unexpected_message(
+                            return Err(Error::unexpected(
                                 "variables aren't allowed in list of codes",
                             ));
                         }
@@ -117,7 +117,7 @@ pub fn directives<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
             .and_then(|v| match v.value {
                 "1.0" => Ok(ast::ProxyHttpVersion::V1_0),
                 "1.1" => Ok(ast::ProxyHttpVersion::V1_1),
-                _ => Err(Error::unexpected_message("invalid http version")),
+                _ => Err(Error::unexpected("invalid http version")),
             })
             .skip(semi())
             .map(Item::ProxyHttpVersion),
@@ -137,7 +137,7 @@ pub fn directives<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
                     "http_429" => Ok(Http429),
                     "non_idempotent" => Ok(NonIdempotent),
                     "off" => Ok(Off),
-                    _ => Err(::combine::easy::Error::unexpected_message(
+                    _ => Err(::combine::easy::Error::unexpected(
                         "invalid proxy upstream flag",
                     )),
                 }

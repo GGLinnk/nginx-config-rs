@@ -11,18 +11,16 @@ use helpers::{ident, prefix, semi, string};
 use tokenizer::{Token, TokenStream};
 use value::Value;
 
-fn error_page<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+fn error_page<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     use ast::ErrorPageResponse;
     use value::Item::*;
 
     fn lit<'a, 'x>(val: &'a Value) -> Result<&'a str, Error<Token<'x>, Token<'x>>> {
         if val.data.is_empty() {
-            return Err(Error::unexpected_message(
-                "empty error codes are not supported",
-            ));
+            return Err(Error::unexpected("empty error codes are not supported"));
         }
         if val.data.len() > 1 {
-            return Err(Error::unexpected_message(
+            return Err(Error::unexpected(
                 "only last argument of error_codes \
                 can contain variables",
             ));
@@ -30,7 +28,7 @@ fn error_page<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
         match val.data[0] {
             Literal(ref x) => return Ok(x),
             _ => {
-                return Err(Error::unexpected_message(
+                return Err(Error::unexpected(
                     "only last argument of error_codes \
                 can contain variables",
                 ))
@@ -44,9 +42,7 @@ fn error_page<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
         .with(many(value()))
         .and_then(move |mut v: Vec<_>| {
             if v.is_empty() {
-                return Err(Error::unexpected_message(
-                    "error_page directive must not be empty",
-                ));
+                return Err(Error::unexpected("error_page directive must not be empty"));
             }
             let uri = v.pop().unwrap();
 
@@ -94,7 +90,7 @@ enum ListenParts {
     ReusePort,
 }
 
-fn listen<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+fn listen<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     use self::ListenParts::*;
     use ast::{Address, HttpExt, Listen};
 
@@ -112,7 +108,7 @@ fn listen<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
             };
             Ok(v)
         }))
-        .and(many::<Vec<_>, _>(choice((
+        .and(many::<Vec<_>, _, _>(choice((
             ident("default_server").map(|_| DefaultServer),
             ident("ssl").map(|_| Ssl),
             ident("http2").map(|_| Ext(HttpExt::Http2)),
@@ -129,7 +125,7 @@ fn listen<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
                 Ok(Ipv6Only(match val {
                     "on" => true,
                     "off" => false,
-                    _ => return Err(Error::unexpected_message("only on/off supported")),
+                    _ => return Err(Error::unexpected("only on/off supported")),
                 }))
             }),
             ident("reuseport").map(|_| ReusePort),
@@ -159,7 +155,7 @@ fn listen<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
         .map(Item::Listen)
 }
 
-fn limit_except<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+fn limit_except<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     ident("limit_except")
         .with(many1(string().map(|x| x.value.to_string())))
         .and(block())
@@ -172,7 +168,7 @@ fn limit_except<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
         })
 }
 
-pub fn directives<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+pub fn directives<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     choice((
         error_page(),
         listen(),
@@ -215,9 +211,7 @@ pub fn directives<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
                     "crit" => Ok(Crit),
                     "alert" => Ok(Alert),
                     "emerg" => Ok(Emerg),
-                    _ => Err(::combine::easy::Error::unexpected_message(
-                        "invalid log level",
-                    )),
+                    _ => Err(::combine::easy::Error::unexpected("invalid log level")),
                 }
             })))
             .skip(semi())

@@ -68,7 +68,7 @@ impl Value {
                     let fchar = chiter
                         .next()
                         .map(|(_, c)| c)
-                        .ok_or_else(|| Error::unexpected_message("bare $ in expression"))?;
+                        .ok_or_else(|| Error::unexpected("bare $ in expression"))?;
                     match fchar {
                         '{' => {
                             while let Some(&(_, c)) = chiter.peek() {
@@ -76,7 +76,7 @@ impl Value {
                                     'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => chiter.next(),
                                     '}' => break,
                                     _ => {
-                                        return Err(Error::expected("}".into()));
+                                        return Err(Error::expected("}"));
                                     }
                                 };
                             }
@@ -96,7 +96,7 @@ impl Value {
                             cur_slice = now;
                         }
                         _ => {
-                            return Err(Error::unexpected_message(format!(
+                            return Err(Error::unexpected_format(format!(
                                 "variable name starts with \
                                     bad char {:?}",
                                 fchar
@@ -135,7 +135,7 @@ impl Value {
                         // TODO(tailhook) figure out maybe this is actually a
                         // tokenizer error, or maybe make this cryptic message
                         // better
-                        return Err(Error::unexpected_message("quote closes prematurely"));
+                        return Err(Error::unexpected("quote closes prematurely"));
                     }
                     return Ok(buf);
                 }
@@ -147,7 +147,7 @@ impl Value {
                     let fchar = chiter
                         .next()
                         .map(|(_, c)| c)
-                        .ok_or_else(|| Error::unexpected_message("bare $ in expression"))?;
+                        .ok_or_else(|| Error::unexpected("bare $ in expression"))?;
                     match fchar {
                         '{' => {
                             unimplemented!();
@@ -162,11 +162,11 @@ impl Value {
                             let now = chiter
                                 .peek()
                                 .map(|&(idx, _)| idx)
-                                .ok_or_else(|| Error::unexpected_message("unclosed quote"))?;
+                                .ok_or_else(|| Error::unexpected("unclosed quote"))?;
                             buf.push(Variable(value[vstart..now].to_string()));
                         }
                         _ => {
-                            return Err(Error::unexpected_message(format!(
+                            return Err(Error::unexpected_format(format!(
                                 "variable name starts with \
                                     bad char {:?}",
                                 fchar
@@ -178,7 +178,7 @@ impl Value {
             }
             prev_char = cur_char;
         }
-        return Err(Error::unexpected_message("unclosed quote"));
+        return Err(Error::unexpected("unclosed quote"));
     }
 }
 

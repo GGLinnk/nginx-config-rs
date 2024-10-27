@@ -6,7 +6,7 @@ use grammar::value;
 use helpers::{ident, semi};
 use tokenizer::TokenStream;
 
-fn add_header<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+fn add_header<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     ident("add_header")
         .with((value(), value(), optional(ident("always").map(|_| ()))))
         .map(|(field, value, always)| ast::AddHeader {
@@ -18,7 +18,7 @@ fn add_header<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
         .map(Item::AddHeader)
 }
 
-fn expires<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+fn expires<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     ident("expires")
         .with(optional(ident("modified")))
         .map(|x| x.is_some())
@@ -27,6 +27,6 @@ fn expires<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
         .skip(semi())
 }
 
-pub fn directives<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+pub fn directives<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     choice((add_header(), expires()))
 }

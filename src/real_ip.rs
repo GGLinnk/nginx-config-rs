@@ -19,14 +19,14 @@ fn parse_source<'a>(val: Token<'a>) -> Result<RealIpFrom, Error<Token<'a>, Token
     if let Some(net) = pair.next() {
         let subnet = net
             .parse::<u8>()
-            .map_err(|e| Error::unexpected_message(format!("invalid subnet: {}", e)))?;
+            .map_err(|e| Error::unexpected_format(format!("invalid subnet: {}", e)))?;
         return Ok(RealIpFrom::Network(addr, subnet));
     } else {
         return Ok(RealIpFrom::Ip(addr));
     }
 }
 
-pub fn directives<'a>() -> impl Parser<Output = Item, Input = TokenStream<'a>> {
+pub fn directives<'a>() -> impl Parser<TokenStream<'a>, Output = Item> {
     choice((
         ident("real_ip_header")
             .with(value())
